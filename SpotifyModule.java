@@ -1,34 +1,187 @@
-Mime-Version: 1.0
-Content-Base: https://notepad-online.com/fr/
-Content-Type: Multipart/related; boundary="NEXT.ITEM-BOUNDARY";type="text/html"
+package com.novaclient.module.modules.misc;
 
---NEXT.ITEM-BOUNDARY
-Content-Type: text/html; charset="utf-8"
-Content-Location: https://notepad-online.com/fr/
+import com.novaclient.NovaClient;
+import com.novaclient.module.Category;
+import com.novaclient.module.Module;
+import com.novaclient.module.setting.BooleanSetting;
+import com.novaclient.module.setting.ModeSetting;
 
-<!DOCTYPE html>
-<html xmlns:o="urn:schemas-microsoft-com:office:office" 
-xmlns:w="urn:schemas-microsoft-com:office:word" 
-xmlns="http://www.w3.org/TR/REC-html40">
-<head>
-<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
-<!--[if gte mso 9]><xml>
- <w:WordDocument>
-  <w:View>Print</w:View>
-  <w:GrammarState>Clean</w:GrammarState>
-  <w:ValidateAgainstSchemas/>
-  <w:SaveIfXMLInvalid>false</w:SaveIfXMLInvalid>
-  <w:IgnoreMixedContent>false</w:IgnoreMixedContent>
-  <w:AlwaysShowPlaceholderText>false</w:AlwaysShowPlaceholderText>
-  <w:BrowserLevel>MicrosoftInternetExplorer4</w:BrowserLevel>
- </w:WordDocument>
-</xml><![endif]--><!--[if gte mso 9]><xml>
- <w:LatentStyles DefLockedState="false" LatentStyleCount="156">
- </w:LatentStyles>
-</xml><![endif]-->
-<style>
+import java.io.BufferedReader;
+import java.io.InputStreamReader;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
 
-</style>
-</head>
-<body><div style="font-family:Calibri,sans-serif;font-size:11pt;"><p>package com.novaclient.module.modules.misc;</p><p>import com.novaclient.NovaClient;<br>import com.novaclient.module.Category;<br>import com.novaclient.module.Module;<br>import com.novaclient.module.setting.BooleanSetting;<br>import com.novaclient.module.setting.ModeSetting;</p><p>import java.io.BufferedReader;<br>import java.io.InputStreamReader;<br>import java.util.concurrent.Executors;<br>import java.util.concurrent.ScheduledExecutorService;<br>import java.util.concurrent.TimeUnit;</p><p>/**<br>&nbsp;* Spotify Module — lit la chanson en cours via le titre de la fenêtre Spotify.<br>&nbsp;* Cross-platform : Linux (wmctrl), Windows (tasklist), macOS (AppleScript).<br>&nbsp;* Aucune dépendance externe, aucune API key.<br>&nbsp;*/<br>public class SpotifyModule extends Module {</p><p>&nbsp; &nbsp; private final BooleanSetting showInHUD = addSetting(new BooleanSetting("Show in HUD", true));<br>&nbsp; &nbsp; private final ModeSetting displayMode = addSetting(new ModeSetting("Display Mode", "Watermark", "Watermark", "ArrayList", "Both"));</p><p>&nbsp; &nbsp; private final ScheduledExecutorService scheduler = Executors.newSingleThreadScheduledExecutor(r -&gt; {<br>&nbsp; &nbsp; &nbsp; &nbsp; Thread t = new Thread(r, "NovaClient-Spotify");<br>&nbsp; &nbsp; &nbsp; &nbsp; t.setDaemon(true);<br>&nbsp; &nbsp; &nbsp; &nbsp; return t;<br>&nbsp; &nbsp; });</p><p>&nbsp; &nbsp; private String currentTrack = "";<br>&nbsp; &nbsp; private String currentArtist = "";<br>&nbsp; &nbsp; private boolean spotifyDetected = false;<br>&nbsp; &nbsp; private final String osName = System.getProperty("os.name").toLowerCase();</p><p>&nbsp; &nbsp; public SpotifyModule() {<br>&nbsp; &nbsp; &nbsp; &nbsp; super("Spotify", "Affiche la chanson Spotify en cours dans le HUD", Category.MISC);<br>&nbsp; &nbsp; }</p><p>&nbsp; &nbsp; @Override<br>&nbsp; &nbsp; public void onEnable() {<br>&nbsp; &nbsp; &nbsp; &nbsp; NovaClient.log("Spotify module activé — détection de la fenêtre Spotify...");<br>&nbsp; &nbsp; &nbsp; &nbsp; scheduler.scheduleAtFixedRate(this::updateMetadata, 0, 2, TimeUnit.SECONDS);<br>&nbsp; &nbsp; }</p><p>&nbsp; &nbsp; @Override<br>&nbsp; &nbsp; public void onDisable() {<br>&nbsp; &nbsp; &nbsp; &nbsp; scheduler.shutdown();<br>&nbsp; &nbsp; &nbsp; &nbsp; NovaClient.log("Spotify module désactivé");<br>&nbsp; &nbsp; }</p><p>&nbsp; &nbsp; /**<br>&nbsp; &nbsp; &nbsp;* Met à jour les métadonnées en lisant le titre de la fenêtre Spotify.<br>&nbsp; &nbsp; &nbsp;* Cross-platform : Linux, Windows, macOS.<br>&nbsp; &nbsp; &nbsp;*/<br>&nbsp; &nbsp; private void updateMetadata() {<br>&nbsp; &nbsp; &nbsp; &nbsp; try {<br>&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; String title = getSpotifyWindowTitle();<br>&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; if (title != null &amp;&amp; !title.isEmpty()) {<br>&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; spotifyDetected = true;<br>&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; // Format Spotify : "Artiste - Titre" ou "Titre"<br>&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; if (title.contains(" - ")) {<br>&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; String[] parts = title.split(" - ", 2);<br>&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; currentArtist = parts[0].trim();<br>&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; currentTrack = parts[1].trim();<br>&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; } else {<br>&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; currentTrack = title.trim();<br>&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; currentArtist = "";<br>&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; }<br>&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; } else {<br>&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; spotifyDetected = false;<br>&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; currentTrack = "";<br>&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; currentArtist = "";<br>&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; }<br>&nbsp; &nbsp; &nbsp; &nbsp; } catch (Exception e) {<br>&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; spotifyDetected = false;<br>&nbsp; &nbsp; &nbsp; &nbsp; }<br>&nbsp; &nbsp; }</p><p>&nbsp; &nbsp; /**<br>&nbsp; &nbsp; &nbsp;* Récupère le titre de la fenêtre Spotify selon l'OS.<br>&nbsp; &nbsp; &nbsp;*/<br>&nbsp; &nbsp; private String getSpotifyWindowTitle() {<br>&nbsp; &nbsp; &nbsp; &nbsp; if (osName.contains("linux")) {<br>&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; return getLinuxWindowTitle();<br>&nbsp; &nbsp; &nbsp; &nbsp; } else if (osName.contains("windows")) {<br>&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; return getWindowsWindowTitle();<br>&nbsp; &nbsp; &nbsp; &nbsp; } else if (osName.contains("mac")) {<br>&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; return getMacWindowTitle();<br>&nbsp; &nbsp; &nbsp; &nbsp; }<br>&nbsp; &nbsp; &nbsp; &nbsp; return null;<br>&nbsp; &nbsp; }</p><p>&nbsp; &nbsp; /**<br>&nbsp; &nbsp; &nbsp;* Linux : utilise wmctrl ou xdotool pour lister les fenêtres.<br>&nbsp; &nbsp; &nbsp;*/<br>&nbsp; &nbsp; private String getLinuxWindowTitle() {<br>&nbsp; &nbsp; &nbsp; &nbsp; // Tentative 1 : wmctrl<br>&nbsp; &nbsp; &nbsp; &nbsp; try {<br>&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; Process p = Runtime.getRuntime().exec(new String[]{"wmctrl", "-l"});<br>&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; BufferedReader reader = new BufferedReader(new InputStreamReader(p.getInputStream()));<br>&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; String line;<br>&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; while ((line = reader.readLine()) != null) {<br>&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; if (line.toLowerCase().contains("spotify")) {<br>&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; // Format : "0x... 0 hostname Titre"<br>&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; String[] parts = line.split(" ", 4);<br>&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; if (parts.length &gt;= 4) {<br>&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; return parts[3];<br>&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; }<br>&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; }<br>&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; }<br>&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; p.waitFor();<br>&nbsp; &nbsp; &nbsp; &nbsp; } catch (Exception ignored) {}</p><p>&nbsp; &nbsp; &nbsp; &nbsp; // Tentative 2 : xdotool<br>&nbsp; &nbsp; &nbsp; &nbsp; try {<br>&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; Process p = Runtime.getRuntime().exec(new String[]{"xdotool", "search", "--name", "Spotify", "getwindowname"});<br>&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; BufferedReader reader = new BufferedReader(new InputStreamReader(p.getInputStream()));<br>&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; String line = reader.readLine();<br>&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; p.waitFor();<br>&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; if (line != null &amp;&amp; !line.isEmpty()) {<br>&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; return line;<br>&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; }<br>&nbsp; &nbsp; &nbsp; &nbsp; } catch (Exception ignored) {}</p><p>&nbsp; &nbsp; &nbsp; &nbsp; return null;<br>&nbsp; &nbsp; }</p><p>&nbsp; &nbsp; /**<br>&nbsp; &nbsp; &nbsp;* Windows : utilise tasklist + PowerShell pour le titre.<br>&nbsp; &nbsp; &nbsp;*/<br>&nbsp; &nbsp; private String getWindowsWindowTitle() {<br>&nbsp; &nbsp; &nbsp; &nbsp; try {<br>&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; Process p = Runtime.getRuntime().exec(new String[]{<br>&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; "powershell", "-Command",<br>&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; "(Get-Process | Where-Object {$_.MainWindowTitle -like '*Spotify*'}).MainWindowTitle"<br>&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; });<br>&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; BufferedReader reader = new BufferedReader(new InputStreamReader(p.getInputStream()));<br>&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; String line = reader.readLine();<br>&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; p.waitFor();<br>&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; if (line != null &amp;&amp; !line.trim().isEmpty()) {<br>&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; return line.trim();<br>&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; }<br>&nbsp; &nbsp; &nbsp; &nbsp; } catch (Exception ignored) {}<br>&nbsp; &nbsp; &nbsp; &nbsp; return null;<br>&nbsp; &nbsp; }</p><p>&nbsp; &nbsp; /**<br>&nbsp; &nbsp; &nbsp;* macOS : utilise AppleScript.<br>&nbsp; &nbsp; &nbsp;*/<br>&nbsp; &nbsp; private String getMacWindowTitle() {<br>&nbsp; &nbsp; &nbsp; &nbsp; try {<br>&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; Process p = Runtime.getRuntime().exec(new String[]{<br>&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; "osascript", "-e",<br>&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; "tell application \"System Events\" to get name of first window of (first process whose name contains \"Spotify\")"<br>&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; });<br>&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; BufferedReader reader = new BufferedReader(new InputStreamReader(p.getInputStream()));<br>&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; String line = reader.readLine();<br>&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; p.waitFor();<br>&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; if (line != null &amp;&amp; !line.trim().isEmpty()) {<br>&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; return line.trim();<br>&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; }<br>&nbsp; &nbsp; &nbsp; &nbsp; } catch (Exception ignored) {}<br>&nbsp; &nbsp; &nbsp; &nbsp; return null;<br>&nbsp; &nbsp; }</p><p>&nbsp; &nbsp; /**<br>&nbsp; &nbsp; &nbsp;* Renvoie le texte à afficher dans le HUD.<br>&nbsp; &nbsp; &nbsp;*/<br>&nbsp; &nbsp; public String getDisplayText() {<br>&nbsp; &nbsp; &nbsp; &nbsp; if (!spotifyDetected) return "♪ Spotify: Non détecté";<br>&nbsp; &nbsp; &nbsp; &nbsp; if (currentTrack.isEmpty()) return "♪ Spotify: Aucune lecture";<br>&nbsp; &nbsp; &nbsp; &nbsp; return "♪ " + currentTrack + (currentArtist.isEmpty() ? "" : " — " + currentArtist);<br>&nbsp; &nbsp; }</p><p>&nbsp; &nbsp; public boolean isSpotifyDetected() {<br>&nbsp; &nbsp; &nbsp; &nbsp; return spotifyDetected;<br>&nbsp; &nbsp; }</p><p>&nbsp; &nbsp; public String getCurrentTrack() {<br>&nbsp; &nbsp; &nbsp; &nbsp; return currentTrack;<br>&nbsp; &nbsp; }</p><p>&nbsp; &nbsp; public String getCurrentArtist() {<br>&nbsp; &nbsp; &nbsp; &nbsp; return currentArtist;<br>&nbsp; &nbsp; }<br>}</p></div></body></html>
---NEXT.ITEM-BOUNDARY--
+/**
+ * Spotify Module — lit la chanson en cours via le titre de la fenêtre Spotify.
+ * Cross-platform : Linux (wmctrl), Windows (tasklist), macOS (AppleScript).
+ * Aucune dépendance externe, aucune API key.
+ */
+public class SpotifyModule extends Module {
+
+    private final BooleanSetting showInHUD = addSetting(new BooleanSetting("Show in HUD", true));
+    private final ModeSetting displayMode = addSetting(new ModeSetting("Display Mode", "Watermark", "Watermark", "ArrayList", "Both"));
+
+    private final ScheduledExecutorService scheduler = Executors.newSingleThreadScheduledExecutor(r -> {
+        Thread t = new Thread(r, "NovaClient-Spotify");
+        t.setDaemon(true);
+        return t;
+    });
+
+    private String currentTrack = "";
+    private String currentArtist = "";
+    private boolean spotifyDetected = false;
+    private final String osName = System.getProperty("os.name").toLowerCase();
+
+    public SpotifyModule() {
+        super("Spotify", "Affiche la chanson Spotify en cours dans le HUD", Category.MISC);
+    }
+
+    @Override
+    public void onEnable() {
+        NovaClient.log("Spotify module activé — détection de la fenêtre Spotify...");
+        scheduler.scheduleAtFixedRate(this::updateMetadata, 0, 2, TimeUnit.SECONDS);
+    }
+
+    @Override
+    public void onDisable() {
+        scheduler.shutdown();
+        NovaClient.log("Spotify module désactivé");
+    }
+
+    /**
+     * Met à jour les métadonnées en lisant le titre de la fenêtre Spotify.
+     * Cross-platform : Linux, Windows, macOS.
+     */
+    private void updateMetadata() {
+        try {
+            String title = getSpotifyWindowTitle();
+            if (title != null && !title.isEmpty()) {
+                spotifyDetected = true;
+                // Format Spotify : "Artiste - Titre" ou "Titre"
+                if (title.contains(" - ")) {
+                    String[] parts = title.split(" - ", 2);
+                    currentArtist = parts[0].trim();
+                    currentTrack = parts[1].trim();
+                } else {
+                    currentTrack = title.trim();
+                    currentArtist = "";
+                }
+            } else {
+                spotifyDetected = false;
+                currentTrack = "";
+                currentArtist = "";
+            }
+        } catch (Exception e) {
+            spotifyDetected = false;
+        }
+    }
+
+    /**
+     * Récupère le titre de la fenêtre Spotify selon l'OS.
+     */
+    private String getSpotifyWindowTitle() {
+        if (osName.contains("linux")) {
+            return getLinuxWindowTitle();
+        } else if (osName.contains("windows")) {
+            return getWindowsWindowTitle();
+        } else if (osName.contains("mac")) {
+            return getMacWindowTitle();
+        }
+        return null;
+    }
+
+    /**
+     * Linux : utilise wmctrl ou xdotool pour lister les fenêtres.
+     */
+    private String getLinuxWindowTitle() {
+        // Tentative 1 : wmctrl
+        try {
+            Process p = Runtime.getRuntime().exec(new String[]{"wmctrl", "-l"});
+            BufferedReader reader = new BufferedReader(new InputStreamReader(p.getInputStream()));
+            String line;
+            while ((line = reader.readLine()) != null) {
+                if (line.toLowerCase().contains("spotify")) {
+                    // Format : "0x... 0 hostname Titre"
+                    String[] parts = line.split(" ", 4);
+                    if (parts.length >= 4) {
+                        return parts[3];
+                    }
+                }
+            }
+            p.waitFor();
+        } catch (Exception ignored) {}
+
+        // Tentative 2 : xdotool
+        try {
+            Process p = Runtime.getRuntime().exec(new String[]{"xdotool", "search", "--name", "Spotify", "getwindowname"});
+            BufferedReader reader = new BufferedReader(new InputStreamReader(p.getInputStream()));
+            String line = reader.readLine();
+            p.waitFor();
+            if (line != null && !line.isEmpty()) {
+                return line;
+            }
+        } catch (Exception ignored) {}
+
+        return null;
+    }
+
+    /**
+     * Windows : utilise tasklist + PowerShell pour le titre.
+     */
+    private String getWindowsWindowTitle() {
+        try {
+            Process p = Runtime.getRuntime().exec(new String[]{
+                "powershell", "-Command",
+                "(Get-Process | Where-Object {$_.MainWindowTitle -like '*Spotify*'}).MainWindowTitle"
+            });
+            BufferedReader reader = new BufferedReader(new InputStreamReader(p.getInputStream()));
+            String line = reader.readLine();
+            p.waitFor();
+            if (line != null && !line.trim().isEmpty()) {
+                return line.trim();
+            }
+        } catch (Exception ignored) {}
+        return null;
+    }
+
+    /**
+     * macOS : utilise AppleScript.
+     */
+    private String getMacWindowTitle() {
+        try {
+            Process p = Runtime.getRuntime().exec(new String[]{
+                "osascript", "-e",
+                "tell application \"System Events\" to get name of first window of (first process whose name contains \"Spotify\")"
+            });
+            BufferedReader reader = new BufferedReader(new InputStreamReader(p.getInputStream()));
+            String line = reader.readLine();
+            p.waitFor();
+            if (line != null && !line.trim().isEmpty()) {
+                return line.trim();
+            }
+        } catch (Exception ignored) {}
+        return null;
+    }
+
+    /**
+     * Renvoie le texte à afficher dans le HUD.
+     */
+    public String getDisplayText() {
+        if (!spotifyDetected) return "♪ Spotify: Non détecté";
+        if (currentTrack.isEmpty()) return "♪ Spotify: Aucune lecture";
+        return "♪ " + currentTrack + (currentArtist.isEmpty() ? "" : " — " + currentArtist);
+    }
+
+    public boolean isSpotifyDetected() {
+        return spotifyDetected;
+    }
+
+    public String getCurrentTrack() {
+        return currentTrack;
+    }
+
+    public String getCurrentArtist() {
+        return currentArtist;
+    }
+}
